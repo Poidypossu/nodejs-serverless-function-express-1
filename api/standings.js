@@ -1,26 +1,35 @@
-export default async function standings(req, res) {
-  const season = req.query.season || 2025;
-
-  const url = `https://lm-api-reads.fantasy.espn.com/apis/v3/games/ffl/seasons/${season}/segments/0/leagues/169608?view=mStandings`;
-
+// standings.js
+export default async function handler(req, res) {
   try {
-    const espnRes = await fetch(url);
-    const data = await espnRes.json();
+    const season = req.query.season || 2025;
+    const leagueId = 169608;
 
-    const teams = data.teams.map(t => ({
-      teamId: t.id,
-      playoffClinchType: t.playoffClinchType,
-      rank: t.currentSimulationResults?.rank,
-      playoffPct: t.currentSimulationResults?.playoffPct,
-      divisionWinPct: t.currentSimulationResults?.divisionWinPct
-    }));
+    const url = `https://lm-api-reads.fantasy.espn.com/apis/v3/games/ffl/seasons/${season}/segments/0/leagues/${leagueId}?view=mStandings`;
+    const data = await (await fetch(url)).json();
 
-    res.status(200).json({
-      season,
-      leagueId: data.id,
-      teams
+    const rows = (data.teams || []).map(t => {
+      const record = t.currentSimulationResults?.modeRecord || {};
+      const name = t.name || `${t.location || ""} ${t.nickname || ""}`.trim();
+
+      return {
+        teamId: t.id,
+        teamName: name,
+        abbrev: t.abbrev || "",
+        rank: t.currentSimulationResults?.rank || null,
+        playoffClinchType: t.playoffClinchType || "",
+        playoffPct: t.currentSimulationResults?.playoffPct || 0,
+        divisionWinPct: t.currentSimulationResults?.divisionWinPct || 0,
+        wins: record.wins,
+        losses: record.losses,
+        ties: record.ties,
+        pointsFor: record.pointsFor,
+        pointsAgainst: record.pointsAgainst,
+        streakType: record.streakType,
+        streakLength: record.streakLength
+      };
     });
 
+    res.status(200).json(rows);
   } catch (err) {
     res.status(500).json({ error: err.message });
   }
