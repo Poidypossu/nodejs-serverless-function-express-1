@@ -1,50 +1,65 @@
-export default async function standingsFull(req, res) {
-  const season = req.query.season || 2025;
+import fetch from 'node-fetch';
 
-  const url = `https://lm-api-reads.fantasy.espn.com/apis/v3/games/ffl/seasons/${season}/segments/0/leagues/169608?view=mStandings`;
+export default async function handler(req, res) {
+  const season = req.query.season || 2025;
+  const leagueId = 169608;
+
+  const teamsURL = `https://lm-api-reads.fantasy.espn.com/apis/v3/games/ffl/seasons/${season}/segments/0/leagues/${leagueId}?view=mTeam`;
+  const standingsURL = `https://lm-api-reads.fantasy.espn.com/apis/v3/games/ffl/seasons/${season}/segments/0/leagues/${leagueId}?view=mStandings`;
 
   try {
-    const espnRes = await fetch(url);
-    const data = await espnRes.json();
+    // 1. Fetch team metadata
+    const teamsRes = await fetch(teamsURL);
+    const teamsJson = await teamsRes.json();
 
-    // Full simulation breakdown
-    const teams = data.teams.map(t => ({
+    const teamMap = {};
+    for (const t of teamsJson.teams) {
+      teamMap[t.id] = {
+        teamName: t.name || `${t.location} ${t.nickname}`.trim(),
+        abbrev: t.abbrev,
+        owner: (t.owners && t.owners.length > 0) ? t.owners[0] : null
+      };
+    }
+
+    // 2. Fetch standings
+    const stdRes = await fetch(standingsURL);
+    const standings = await stdRes.json();
+
+    // 3. Replace IDs with names
+    const enrichedTeams = standings.teams.map(t => ({
       teamId: t.id,
-      playoffClinchType: t.playoffClinchType,
+      teamName: teamMap[t.id]?.teamName,
+      abbrev: teamMap[t.id]?.abbrev,
+      owner: teamMap[t.id]?.owner,
       rank: t.currentSimulationResults?.rank,
+      playoffClinchType: t.playoffClinchType,
       playoffPct: t.currentSimulationResults?.playoffPct,
       divisionWinPct: t.currentSimulationResults?.divisionWinPct,
-      modeRecord: t.currentSimulationResults?.modeRecord || {}
+      record: t.currentSimulationResults?.modeRecord
     }));
 
-    // Full schedule matrix
-    const schedule = data.schedule.map(m => ({
-      week: m.matchupPeriodId,
-      homeTeamId: m.home.teamId,
-      homePoints: m.home.totalPoints,
-      awayTeamId: m.away.teamId,
-      awayPoints: m.away.totalPoints
+    const enrichedSchedule = standings.schedule.map((m, idx) => ({
+      matchup: idx + 1,
+      periodId: m.matchupPeriodId,
+      away: {
+        teamId: m.away.teamId,
+        teamName: teamMap[m.away.teamId]?.teamName,
+        abbrev: teamMap[m.away.teamId]?.abbrev,
+        points: m.away.totalPoints
+      },
+      home: {
+        teamId: m.home.teamId,
+        teamName: teamMap[m.home.teamId]?.teamName,
+        abbrev: teamMap[m.home.teamId]?.abbrev,
+        points: m.home.totalPoints
+      }
     }));
-
-    // League status block
-    const status = {
-      currentMatchupPeriod: data.status?.currentMatchupPeriod,
-      latestScoringPeriod: data.status?.latestScoringPeriod,
-      firstScoringPeriod: data.status?.firstScoringPeriod,
-      finalScoringPeriod: data.status?.finalScoringPeriod,
-      isActive: data.status?.isActive,
-      isFull: data.status?.isFull,
-      previousSeasons: data.status?.previousSeasons || [],
-      waiverLastExecutionDate: data.status?.waiverLastExecutionDate,
-      waiverProcessStatus: data.status?.waiverProcessStatus || {}
-    };
 
     res.status(200).json({
       season,
-      leagueId: data.id,
-      schedule,
-      teams,
-      status
+      leagueId,
+      teams: enrichedTeams,
+      schedule: enrichedSchedule
     });
 
   } catch (err) {
