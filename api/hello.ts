@@ -1,25 +1,18 @@
-app.get('/api/roster', async (req, res) => {
-  const season = req.query.season || 2025;
-  const url = `https://lm-api-reads.fantasy.espn.com/apis/v3/games/ffl/seasons/${season}/segments/0/leagues/169608?view=mRoster`;
+import express from 'express';
+import roster from './roster.js';
+import standings from './standings.js';
+import standingsFull from './standingsFull.js';
 
-  try {
-    const espnRes = await fetch(url);
-    const data = await espnRes.json();
+const app = express();
 
-    const teams = data.teams.map(team => ({
-      id: team.id,
-      name: team.name || `${team.location} ${team.nickname}`.trim(),
-      roster: team.roster.entries.map(e => ({
-        playerId: e.playerId,
-        fullName: e.playerPoolEntry.player.fullName,
-        defaultPositionId: e.playerPoolEntry.player.defaultPositionId,
-        proTeamId: e.playerPoolEntry.player.proTeamId,
-        lineupSlotId: e.lineupSlotId
-      }))
-    }));
-
-    res.status(200).json({ season, leagueId: 169608, teams });
-  } catch (err) {
-    res.status(500).json({ error: err.message });
-  }
+// Simple health check
+app.get('/api/hello', (req, res) => {
+  res.status(200).json({ message: 'API is running' });
 });
+
+// Fantasy API endpoints
+app.get('/api/roster', roster);
+app.get('/api/standings', standings);
+app.get('/api/standingsFull', standingsFull);
+
+export default app;
