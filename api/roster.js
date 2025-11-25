@@ -7,18 +7,38 @@ export default async function handler(req, res) {
     const espnRes = await fetch(url);
     const data = await espnRes.json();
 
-    // Reduce roster payload massively
-    const teams = data.teams.map(team => ({
-      id: team.id,
-      name: team.name || `${team.location} ${team.nickname}`.trim(),
-      roster: team.roster.entries.map(e => ({
-        playerId: e.playerId,
-        fullName: e.playerPoolEntry.player.fullName,
-        defaultPositionId: e.playerPoolEntry.player.defaultPositionId,
-        proTeamId: e.playerPoolEntry.player.proTeamId,
-        lineupSlotId: e.lineupSlotId
-      }))
-    }));
+    // Build member ID → name lookup
+    const memberNames = {};
+    if (data.members) {
+      for (const m of data.members) {
+        memberNames[m.id] = m.displayName;
+      }
+    }
+
+    const teams = data.teams.map(team => {
+      // Team name resolution:
+      const ownerId = team.owners?.[0];
+      const ownerName = memberNames[ownerId] || "Unknown";
+
+      const resolvedName =
+        team.name && team.name.length > 0
+          ? team.name
+          : (team.location || "") + " " + (team.nickname || "") ||
+            ownerName;
+
+      return {
+        id: team.id,
+        name: resolvedName.trim(),
+        owner: ownerName,
+        roster: team.roster.entries.map(e => ({
+          playerId: e.playerId,
+          fullName: e.playerPoolEntry.player.fullName,
+          defaultPositionId: e.playerPoolEntry.player.defaultPositionId,
+          proTeamId: e.playerPoolEntry.player.proTeamId,
+          lineupSlotId: e.lineupSlotId
+        }))
+      };
+    });
 
     return res.status(200).json({ season, leagueId: 169608, teams });
 
