@@ -1,83 +1,50 @@
-import fetch from 'node-fetch';
-
+// standingsFull.js
 export default async function handler(req, res) {
-  const season = req.query.season || 2025;
-  const leagueId = 169608;
-
-  const base = `https://lm-api-reads.fantasy.espn.com/apis/v3/games/ffl/seasons/${season}/segments/0/leagues/${leagueId}`;
-
-  const teamURL = `${base}?view=mTeam`;
-  const standingsURL = `${base}?view=mStandings`;
-
   try {
-    // 1. Fetch team metadata
-    const teamRes = await fetch(teamURL);
-    const teamJson = await teamRes.json();
+    const season = req.query.season || 2025;
+    const leagueId = 169608;
 
-    // Build a map of teamId -> metadata
-    const teamMap = {};
-    for (const t of teamJson.teams) {
-      teamMap[t.id] = {
-        teamName: t.name || `${t.location} ${t.nickname}`.trim(),
-        abbrev: t.abbrev,
-        ownerDisplay:
-          (teamJson.members?.find(m => m.id === t.owners?.[0])?.displayName) ||
-          t.owners?.[0] ||
-          "Unknown Owner"
+    const url = `https://lm-api-reads.fantasy.espn.com/apis/v3/games/ffl/seasons/${season}/segments/0/leagues/${leagueId}?view=mStandings`;
+    const data = await (await fetch(url)).json();
+
+    const teamLookup = {};
+    const standings = (data.teams || []).map(t => {
+      const name = t.name || `${t.location || ""} ${t.nickname || ""}`.trim();
+      teamLookup[t.id] = { name, abbrev: t.abbrev || "" };
+
+      const r = t.currentSimulationResults?.modeRecord || {};
+      return {
+        teamId: t.id,
+        teamName: name,
+        abbrev: t.abbrev || "",
+        rank: t.currentSimulationResults?.rank,
+        playoffClinchType: t.playoffClinchType,
+        playoffPct: t.currentSimulationResults?.playoffPct,
+        divisionWinPct: t.currentSimulationResults?.divisionWinPct,
+        wins: r.wins,
+        losses: r.losses,
+        ties: r.ties
       };
-    }
-
-    // 2. Fetch standings
-    const stdRes = await fetch(standingsURL);
-    const standings = await stdRes.json();
-
-    // 3. Build clean team standings
-    const teams = standings.teams.map(t => ({
-      teamId: t.id,
-      teamName: teamMap[t.id].teamName,
-      abbrev: teamMap[t.id].abbrev,
-      owner: teamMap[t.id].ownerDisplay,
-      rank: t.currentSimulationResults?.rank,
-      record: {
-        wins: t.currentSimulationResults?.modeRecord?.wins,
-        losses: t.currentSimulationResults?.modeRecord?.losses,
-        ties: t.currentSimulationResults?.modeRecord?.ties,
-        streakType: t.currentSimulationResults?.modeRecord?.streakType,
-        streakLength: t.currentSimulationResults?.modeRecord?.streakLength
-      },
-      playoff: {
-        clinch: t.playoffClinchType,
-        pct: t.currentSimulationResults?.playoffPct
-      },
-      division: {
-        winPct: t.currentSimulationResults?.divisionWinPct
-      }
-    }));
-
-    // 4. Build clean schedule
-    const schedule = standings.schedule.map((m, i) => ({
-      matchup: i + 1,
-      period: m.matchupPeriodId,
-      away: {
-        teamId: m.away.teamId,
-        teamName: teamMap[m.away.teamId].teamName,
-        abbrev: teamMap[m.away.teamId].abbrev,
-        points: m.away.totalPoints
-      },
-      home: {
-        teamId: m.home.teamId,
-        teamName: teamMap[m.home.teamId].teamName,
-        abbrev: teamMap[m.home.teamId].abbrev,
-        points: m.home.totalPoints
-      }
-    }));
-
-    res.status(200).json({
-      season,
-      leagueId,
-      teams,
-      schedule
     });
+
+    const schedule = (data.schedule || []).map((m, i) => {
+      const a = m.away || {};
+      const h = m.home || {};
+      return {
+        matchupIndex: i + 1,
+        periodId: m.matchupPeriodId,
+        awayTeamId: a.teamId,
+        awayTeamName: teamLookup[a.teamId]?.name || "",
+        awayAbbrev: teamLookup[a.teamId]?.abbrev || "",
+        awayPoints: a.totalPoints,
+        homeTeamId: h.teamId,
+        homeTeamName: teamLookup[h.teamId]?.name || "",
+        homeAbbrev: teamLookup[h.teamId]?.abbrev || "",
+        homePoints: h.totalPoints
+      };
+    });
+
+    res.status(200).json({ standings, schedule });
 
   } catch (err) {
     res.status(500).json({ error: err.message });
