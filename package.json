@@ -1,10 +1,22 @@
 {
-  "repository": "https://github.com/vercel/examples.git",
+  "name": "fantasy-football-api",
+  "version": "1.0.0",
+  "description": "ESPN Fantasy Football API for ChatGPT Custom GPT",
+  "repository": "https://github.com/michael480th/nodejs-serverless-function-express.git",
   "license": "MIT",
   "private": true,
+  "main": "index.js",
+  "scripts": {
+    "dev": "vercel dev",
+    "build": "echo 'No build step required'"
+  },
+  "dependencies": {},
   "devDependencies": {
     "@types/node": "^17.0.42",
     "@vercel/node": "^2.9.6",
     "typescript": "^4.7.3"
+  },
+  "engines": {
+    "node": ">=18.x"
   }
 }
