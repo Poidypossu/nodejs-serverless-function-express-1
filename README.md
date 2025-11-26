@@ -1,4 +1,4 @@
-# NU Pikes Fantasy Football API
+# Custom GPT for ESPN Fantasy Football Leagues
 
 This project exposes a set of **read‑only JSON endpoints** for an ESPN Fantasy Football league (league ID `169608`) and is designed to be used by a **Custom GPT** via Actions. It runs on **Vercel** as Node.js serverless functions.
 
