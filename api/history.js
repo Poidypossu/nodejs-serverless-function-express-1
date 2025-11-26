@@ -46,32 +46,30 @@ module.exports = async (req, res) => {
           
           // Create row for away team
           allRows.push({
-            season: season,
-            week: week,
-            matchupId: matchupIndex + 1,
-            teamId: awayTeamId,
-            teamAbbrev: awayTeam.abbrev,
-            opponentTeamId: homeTeamId,
-            opponentTeamAbbrev: homeTeam.abbrev,
-            pointsFor: awayPoints,
-            pointsAgainst: homePoints,
-            opponentPoints: homePoints,
-            pointDiff: Math.round((awayPoints - homePoints) * 10) / 10
+            s: season,
+            w: week,
+            mid: matchupIndex + 1,
+            tid: awayTeamId,
+            ta: awayTeam.abbrev,
+            otid: homeTeamId,
+            ota: homeTeam.abbrev,
+            pf: awayPoints,
+            pa: homePoints,
+            diff: Math.round((awayPoints - homePoints) * 10) / 10
           });
           
           // Create row for home team
           allRows.push({
-            season: season,
-            week: week,
-            matchupId: matchupIndex + 1,
-            teamId: homeTeamId,
-            teamAbbrev: homeTeam.abbrev,
-            opponentTeamId: awayTeamId,
-            opponentTeamAbbrev: awayTeam.abbrev,
-            pointsFor: homePoints,
-            pointsAgainst: awayPoints,
-            opponentPoints: awayPoints,
-            pointDiff: Math.round((homePoints - awayPoints) * 10) / 10
+            s: season,
+            w: week,
+            mid: matchupIndex + 1,
+            tid: homeTeamId,
+            ta: homeTeam.abbrev,
+            otid: awayTeamId,
+            ota: awayTeam.abbrev,
+            pf: homePoints,
+            pa: awayPoints,
+            diff: Math.round((homePoints - awayPoints) * 10) / 10
           });
         });
       } catch (error) {
