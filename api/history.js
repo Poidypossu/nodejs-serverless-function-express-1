@@ -50,16 +50,13 @@ module.exports = async (req, res) => {
             week: week,
             matchupId: matchupIndex + 1,
             teamId: awayTeamId,
-            teamName: awayTeam.name,
             teamAbbrev: awayTeam.abbrev,
-            location: "away",
             opponentTeamId: homeTeamId,
-            opponentTeamName: homeTeam.name,
             opponentTeamAbbrev: homeTeam.abbrev,
             pointsFor: awayPoints,
             pointsAgainst: homePoints,
             opponentPoints: homePoints,
-            pointDiff: awayPoints - homePoints
+            pointDiff: Math.round((awayPoints - homePoints) * 10) / 10
           });
           
           // Create row for home team
@@ -68,16 +65,13 @@ module.exports = async (req, res) => {
             week: week,
             matchupId: matchupIndex + 1,
             teamId: homeTeamId,
-            teamName: homeTeam.name,
             teamAbbrev: homeTeam.abbrev,
-            location: "home",
             opponentTeamId: awayTeamId,
-            opponentTeamName: awayTeam.name,
             opponentTeamAbbrev: awayTeam.abbrev,
             pointsFor: homePoints,
             pointsAgainst: awayPoints,
             opponentPoints: awayPoints,
-            pointDiff: homePoints - awayPoints
+            pointDiff: Math.round((homePoints - awayPoints) * 10) / 10
           });
         });
       } catch (error) {
@@ -95,5 +89,3 @@ module.exports = async (req, res) => {
     res.status(500).json({ error: error.message });
   }
 };
-
-
