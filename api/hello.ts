@@ -4,6 +4,7 @@ import schedule from "./schedule";
 import standings from "./standings";
 import standingsFull from "./standingsFull";
 import roster from "./roster";
+import history from "./history";
 
 const app = express();
 
@@ -16,8 +17,9 @@ app.get("/", (req, res) => {
 app.get("/api/teams", teams);
 app.get("/api/schedule", schedule);
 app.get("/api/standings", standings);
-app.get("/api/standingsfull", standingsFull);
+app.get("/api/standingsFull", standingsFull);
 app.get("/api/roster", roster);
+app.get("/api/history", history);
 
 // Export for Vercel / serverless
 export default app;
